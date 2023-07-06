@@ -8,3 +8,7 @@ SKAT project
 5. Sender_and_reciever - софт по подключению Ra-02
 6. Model - ссылка на модели
 7. Control_of_modulations - управление модуляциями для управления контроллерами и электроникой
+
+Файлы, не поместившиеся в отчёт
+1. Krylo_i_kreplenia.stp - модель БПЛА
+2. https://drive.google.com/file/d/1fwQ0CysN-NTgahcnH-jIK8IqfzZihCcA/view?usp=sharing - видео пояснения с полётом БПЛА
