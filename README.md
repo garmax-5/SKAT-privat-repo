@@ -7,3 +7,4 @@ SKAT project
 4. Send_quarantee_tested - приемопередача сообщений между самолетом и сервером
 5. Sender_and_reciever - софт по подключению Ra-02
 6. Model - ссылка на модели
+7. Control_of_modulations - управление модуляциями для управления контроллерами и электроникой
