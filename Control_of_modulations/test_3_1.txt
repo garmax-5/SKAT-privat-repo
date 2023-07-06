@@ -1,0 +1,125 @@
+
+#!/usr/bin/env python
+
+# PPM.py
+# 2016-02-18
+# Public Domain
+
+import time
+import pigpio
+
+
+class PPMController:
+    GAP = 400
+    WAVES = 3
+
+    def __init__(self, gpio, channels=8, frame_ms=27):
+        self.pi = pigpio.pi()
+        if not self.pi.connected:
+            raise Exception("Failed to connect to the pigpio daemon. Make sure it is running.")
+
+        self.gpio = gpio
+
+        if frame_ms < 5:
+            frame_ms = 5
+            channels = 2
+        elif frame_ms > 100:
+            frame_ms = 100
+
+        self.frame_ms = frame_ms
+
+        self._frame_us = int(frame_ms * 1000)
+        self._frame_secs = frame_ms / 1000.0
+
+        if channels < 1:
+            channels = 1
+        elif channels > (frame_ms // 2):
+            channels = int(frame_ms // 2)
+
+        self.channels = channels
+
+        self._widths = [1000] * channels  # set each channel to minimum pulse width
+
+        self._wid = [None] * self.WAVES
+        self._next_wid = 0
+
+        self.pi.write(self.gpio, pigpio.LOW)
+        self._update_time = time.time()
+
+    def _update(self):
+        wf = []
+        micros = 0
+        for i in self._widths:
+            wf.append(pigpio.pulse(0, 1 << self.gpio, self.GAP))
+            wf.append(pigpio.pulse(1 << self.gpio, 0, i-self.GAP))
+            micros += (i + self.GAP)
+
+        remaining_duration = self._frame_us+self.channels*self.GAP - micros
+        if remaining_duration > 0:
+            wf.append(pigpio.pulse(1 << self.gpio, 0, remaining_duration))
+        else:
+            wf.append(pigpio.pulse(0, 1 << self.gpio, self.GAP))
+
+        self.pi.wave_add_generic(wf)
+        wid = self.pi.wave_create()
+        self.pi.wave_send_using_mode(wid, pigpio.WAVE_MODE_REPEAT_SYNC)
+        self._wid[self._next_wid] = wid
+
+        self._next_wid += 1
+        if self._next_wid >= self.WAVES:
+            self._next_wid = 0
+
+        remaining = self._update_time + self._frame_secs - time.time()
+        if remaining > 0:
+            time.sleep(remaining)
+        self._update_time = time.time()
+
+        wid = self._wid[self._next_wid]
+        if wid is not None:
+            self.pi.wave_delete(wid)
+            self._wid[self._next_wid] = None
+
+    def update_channel(self, channel, width):
+        self._widths[channel] = width
+        self._update()
+
+    def update_channels(self, widths):
+        self._widths[0:len(widths)] = widths[0:self.channels]
+        self._update()
+
+    def cancel(self):
+        self.pi.wave_tx_stop()
+        for i in self._wid:
+            if i is not None:
+                self.pi.wave_delete(i)
+
+    def cleanup(self):
+        self.cancel()
+        self.pi.stop()
+
+
+if __name__ == "__main__":
+    import time
+
+    ppm_controller = PPMController(13, channels=8, frame_ms=20)
+
+    try:
+        while True:
+            channel = int(input("Enter channel number (0-7): "))
+            if channel < 0 or channel > 7:
+                print("Invalid channel number.")
+                continue
+
+            value = int(input("Enter channel value (1000-2000): "))
+            if value < 1000 or value > 2000:
+                print("Invalid channel value.")
+                continue
+
+            ppm_controller.update_channel(channel, value)
+            print("Channel {} set to {}".format(channel, value))
+
+    except KeyboardInterrupt:
+        ppm_controller.cleanup()
+
+
+
