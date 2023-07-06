@@ -5,3 +5,4 @@ SKAT project
 2. Visualization_of_paths.zip - визуализация маршрута БПЛА на карте и отображение следования БПЛА по маршруту
 3. Image_compressor.zip - кодирование/чанкирование изображений
 4. send_quarantee_tested.rar - приемопередача сообщений между самолетом и сервером
+5. Sender_and_reciever.zip - софт по подключению Ra-02
